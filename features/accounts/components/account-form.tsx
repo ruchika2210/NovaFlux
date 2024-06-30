@@ -39,7 +39,7 @@ export const AccountForm = ({
     })
 
     const handleSubmit = (values:FormValues) =>{
-        console.log({values})
+        onSubmit(values)
     }
 
     const handleDelete = () =>{
@@ -59,7 +59,7 @@ export const AccountForm = ({
 
                         <FormControl>
                             <Input
-                            disabled={true}
+                            disabled={false}
                             placeholder="e.g Cash, Bank, Credit Card"
                             {...field}
                             />
@@ -67,6 +67,11 @@ export const AccountForm = ({
                     </FormItem>
                 )}
                 ></FormField>
+
+                <Button className="w-full" disabled={false} > {id?"Save Changes":"Create Account"}</Button>
+              {!!id &&  <Button type="button" onClick={handleDelete} className="w-full" disabled={true} variant="outline">
+                    <Trash className="size-4 mr-2"/>Delete Account
+                </Button>}
             </form>
         </Form>
     )
