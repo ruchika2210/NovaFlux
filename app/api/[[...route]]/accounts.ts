@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import {z} from "zod";
+import { z } from "zod";
 import { db } from "@/db/drizzle";
 import { accounts, insertAccountSchema } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
@@ -50,42 +50,41 @@ const app = new Hono()
 
         return c.json({ data });
       } catch (error) {
-        // Handle database or other operational errors
         throw new HTTPException(500, { error: "Internal Server Error" });
       }
     }
   )
+  // POST endpoint for bulk delete
   .post("/bulk-delete",
     clerkMiddleware(),
     zValidator(
       "json",
       z.object({
-        ids:z.array(z.string()),
+        ids: z.array(z.string()),
       })
     ),
-    async(c) =>{
+    async (c) => {
       const auth = getAuth(c);
       const values = c.req.valid("json");
 
-      if(!auth?.userId){
-        return c.json({error:"Unauthorozed"}, 401)
+      if (!auth?.userId) {
+        throw new HTTPException(401, { error: "Unauthorized" });
       }
 
       const data = await db
-      .delete(accounts)
-      .where(
+        .delete(accounts)
+        .where(
           and(
             eq(accounts.userId, auth.userId),
-            inArray(accounts.id,values.ids)
+            inArray(accounts.id, values.ids)
           )
-      )
-      .returning({
-        id:accounts.id
-      })
+        )
+        .returning({
+          id: accounts.id
+        });
 
-      return c.json({data});
+      return c.json({ data });
     }
-
-  )
+  );
 
 export default app;

@@ -1,5 +1,4 @@
 "use client";
-
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useNewAccount } from "@/features/accounts/hooks/use-new-account"
@@ -39,7 +38,7 @@ const AccountsPage = () => {
             <CardContent>
             <DataTable columns={columns} data={accounts} filterkey="name" onDelete={(row) =>{
               const ids = row.map((r)=>r.original.id);
-              deleteAccounts.mutate({ids})
+              deleteAccounts.mutate({ids});
             }} disabled={isDisabled} />
 
             </CardContent>
