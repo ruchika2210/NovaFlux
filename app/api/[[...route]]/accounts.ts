@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { db } from "@/db/drizzle";
-import { accounts, insertAccountSchema } from "@/db/schema";
+import { accounts } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { clerkMiddleware, getAuth } from "@hono/clerk-auth";
 import { createId } from "@paralleldrive/cuid2";
@@ -13,27 +13,31 @@ const app = new Hono()
   .get("/", clerkMiddleware(), async (c) => {
     const auth = getAuth(c);
     if (!auth?.userId) {
-      throw new HTTPException(401, { error: "Unauthorized" });
+      throw new HTTPException(401, { message: "Unauthorized" });
     }
-    const data = await db
-      .select({
-        id: accounts.id,
-        name: accounts.name,
-      })
-      .from(accounts)
-      .where(eq(accounts.userId, auth.userId));
+    try {
+      const data = await db
+        .select({
+          id: accounts.id,
+          name: accounts.name,
+        })
+        .from(accounts)
+        .where(eq(accounts.userId, auth.userId));
 
-    return c.json({ data });
+      return c.json({ data });
+    } catch (error) {
+      throw new HTTPException(500, { message: "Internal Server Error" });
+    }
   })
   // POST endpoint to create a new account
   .post(
     "/",
     clerkMiddleware(),
-    zValidator("json", insertAccountSchema.pick({ name: true })),
+    zValidator("json", z.object({ name: z.string().nonempty() })),
     async (c) => {
       const auth = getAuth(c);
       if (!auth?.userId) {
-        throw new HTTPException(401, { error: "Unauthorized" });
+        throw new HTTPException(401, { message: "Unauthorized" });
       }
 
       const values = c.req.valid("json");
@@ -50,12 +54,13 @@ const app = new Hono()
 
         return c.json({ data });
       } catch (error) {
-        throw new HTTPException(500, { error: "Internal Server Error" });
+        throw new HTTPException(500, { message: "Internal Server Error" });
       }
     }
   )
-  // POST endpoint for bulk delete
-  .post("/bulk-delete",
+  // POST endpoint for bulk delete accounts
+  .post(
+    "/bulk-delete",
     clerkMiddleware(),
     zValidator(
       "json",
@@ -68,22 +73,26 @@ const app = new Hono()
       const values = c.req.valid("json");
 
       if (!auth?.userId) {
-        throw new HTTPException(401, { error: "Unauthorized" });
+        throw new HTTPException(401, { message: "Unauthorized" });
       }
 
-      const data = await db
-        .delete(accounts)
-        .where(
-          and(
-            eq(accounts.userId, auth.userId),
-            inArray(accounts.id, values.ids)
+      try {
+        const data = await db
+          .delete(accounts)
+          .where(
+            and(
+              eq(accounts.userId, auth.userId),
+              inArray(accounts.id, values.ids)
+            )
           )
-        )
-        .returning({
-          id: accounts.id
-        });
+          .returning({
+            id: accounts.id,
+          });
 
-      return c.json({ data });
+        return c.json({ data });
+      } catch (error) {
+        throw new HTTPException(500, { message: "Internal Server Error" });
+      }
     }
   );
 
